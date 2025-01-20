@@ -1,90 +1,91 @@
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
-
 const dirPath = path.join(__dirname, '/project-dist');
+const sourseFiles = path.join(__dirname, 'assets');
 
-fs.access(dirPath, fs.constants.F_OK, (err) => {
-   if (err) {
-      createDir();
-   };
+bundleProject();
 
-   bundleHtml();
-   bundleCss();
-
-
-});
-
-function createDir() {
-   fs.mkdir(dirPath, (err) => {
-      if (err) throw err;
-   });
+async function createDir(dirPath) {
+  try {
+    await fs.access(dirPath);
+  } catch (error) {
+    fs.mkdir(dirPath);
+  }
 }
 
-function bundleCss() {
-   let data1 = '';
-   const path1 = path.join(__dirname, 'styles/01-header.css');
-   const path2 = path.join(__dirname, 'styles/02-main.css');
-   const path3 = path.join(__dirname, 'styles/03-footer.css');
+async function bundleCss() {
+  let data1 = '';
+  const path1 = path.join(__dirname, 'styles/01-header.css');
+  const path2 = path.join(__dirname, 'styles/02-main.css');
+  const path3 = path.join(__dirname, 'styles/03-footer.css');
 
-   fs.readFile(path1, 'utf8', (err, data) => {
-      if (err) throw err;
-      data1 += data;
+  data1 += await fs.readFile(path1, 'utf8');
+  data1 += await fs.readFile(path2, 'utf8');
+  data1 += await fs.readFile(path3, 'utf8');
 
-      fs.readFile(path2, 'utf-8', (err, data) => {
-         if (err) throw err;
-         data1 += data;
+  await fs.writeFile(path.join(__dirname, 'project-dist/style.css'), data1);
+}
 
-         fs.readFile(path3, 'utf-8', (err, data) => {
-            if (err) throw err;
-            data1 += data;
+async function bundleHtml() {
+  let templateData = '';
+  let templateHeader = '';
+  let templateArticles = '';
+  let templateFooter = '';
 
-            fs.writeFile(path.join(__dirname, 'project-dist/style.css'), data1, (err) => {
-               if (err) throw err;
-            });
+  templateData += await fs.readFile(
+    path.join(__dirname, 'template.html'),
+    'utf-8',
+  );
+  templateHeader += await fs.readFile(
+    path.join(__dirname, 'components/header.html'),
+    'utf-8',
+  );
+  templateArticles += await fs.readFile(
+    path.join(__dirname, 'components/articles.html'),
+    'utf-8',
+  );
+  templateFooter += await fs.readFile(
+    path.join(__dirname, 'components/footer.html'),
+    'utf-8',
+  );
 
-         });
-      });
-   });
-};
+  replaceTemplate();
 
-function bundleHtml() {
-   let templateData = '';
-   let templateHeader = '';
-   let templateArticles = '';
-   let templateFooter = '';
+  await fs.writeFile(
+    path.join(__dirname, 'project-dist/index.html'),
+    templateData,
+  );
 
-   fs.readFile(path.join(__dirname, 'template.html'), 'utf-8', (err, htmlData) => {
-      if (err) throw err;
-      templateData += htmlData;
-      fs.readFile(
-         path.join(__dirname, 'components/articles.html'),
-         'utf-8',
-         (err, articlesData) => {
-            if (err) throw err;
-            templateArticles += articlesData;
-            fs.readFile(path.join(__dirname, 'components/header.html'), 'utf-8', (err, headerData) => {
-               if (err) throw err;
-               templateHeader += headerData;
-               fs.readFile(path.join(__dirname, 'components/footer.html'), 'utf-8', (err, footerData) => {
-                  if (err) throw err;
-                  templateFooter += footerData;
-                  replaceTemplate();
-                  fs.writeFile(
-                     path.join(__dirname, 'project-dist/index.html'),
-                     templateData,
-                     (err) => {
-                        if (err) throw err;
-                        console.log('complete html bundle');
-                     });
-               });
-            },
-            );
-         });
-   });
+  function replaceTemplate() {
+    templateData = templateData.replace(/\{\{header\}\}/g, templateHeader);
+    templateData = templateData.replace(/\{\{footer\}\}/g, templateFooter);
+    templateData = templateData.replace(/\{\{articles\}\}/g, templateArticles);
+  }
+}
 
-   function replaceTemplate() {
-      templateData = templateData.replace(/\{\{header\}\}/g, templateHeader);
-      templateData = templateData.replace(/\{\{footer\}\}/g, templateFooter);
-      templateData = templateData.replace(/\{\{articles\}\}/g, templateArticles);
-   };
+async function bundleProject() {
+  await createDir(dirPath);
+  await bundleCss();
+  await bundleHtml();
+  await copyDirectory(sourseFiles, path.join(__dirname, 'project-dist/assets'));
+}
+
+async function copyDirectory(source, target) {
+  await createDir(target);
+
+  const files = await fs.readdir(source);
+
+  for (const file of files) {
+    const sourcePath = path.join(source, file);
+    const targetPath = path.join(target, file);
+
+    const stats = await fs.stat(sourcePath);
+
+    if (stats.isDirectory()) {
+      console.log(sourcePath, targetPath);
+      await copyDirectory(sourcePath, targetPath);
+    } else {
+      await fs.copyFile(sourcePath, targetPath);
+    }
+  }
 }
