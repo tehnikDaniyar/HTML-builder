@@ -28,6 +28,8 @@ async function copyDir(source, target) {
 async function createDir(dirPath) {
    try {
       await fs.access(dirPath);
+      await fs.rm(dirPath, { recursive: true });
+      fs.mkdir(dirPath);
    } catch (error) {
       fs.mkdir(dirPath);
    }
