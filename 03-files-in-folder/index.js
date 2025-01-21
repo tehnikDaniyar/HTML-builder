@@ -2,7 +2,6 @@ const fs = require("fs").promises;
 const path = require("path");
 const source = path.join(__dirname, "secret-folder");
 
-
 readFiles(source);
 
 async function readFiles(source) {
@@ -23,17 +22,8 @@ async function readFiles(source) {
             lastEdit: stat.birthtime
          });
       }
-
-
    }
-
-}
-
-
-
-
-
-async function getInfoOfFile(path) {
-
 };
+
+
 
