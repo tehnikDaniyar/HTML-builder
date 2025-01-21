@@ -11,10 +11,6 @@ async function readFiles(source) {
       const pathFile = path.join(source, file);
       const stat = await fs.stat(pathFile);
 
-      if (stat.isDirectory()) {
-         readFiles(pathFile)
-      };
-
       if (stat.isFile()) {
          console.log({
             fileName: file,
